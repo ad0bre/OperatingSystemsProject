@@ -5,7 +5,7 @@ project made by: DOBRE Andrei-Lucian
 
 ---
 
-To run the *program.c*, download this project, then in the command line run:
+To run the *program.c* file, download this project, then in the command line run:
 
 ```bash
 gcc -g program.c -o program

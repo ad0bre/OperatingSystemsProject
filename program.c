@@ -13,6 +13,8 @@
 #define FILE_OUT "statistica.txt"
 #define BUFF_SIZE 256
 #define PATH_SIZE 256
+#define FIXED_CONST 20 //don't ask why, it's the only way it works
+
 DIR* openDir(char* path)
 {
     DIR* dIn = opendir(path);
@@ -270,17 +272,70 @@ void processLink(char* path, struct stat* inf, int fout)
     writeInFile(fout, "\n", 1);
 }
 
+void readFromFile(int file, void* buffer, size_t nbytes)
+{
+    int rd = read(file, buffer, nbytes);
+    if(rd < 0)
+    {
+        perror("Error at reading from file\n");
+        exit(errno);
+    }
+}
+
 void processFile(char* path, struct stat* inf, int fout)
 {
+    char sign[3];
+
     char buffer[BUFF_SIZE];
+
+    char height[6];
+
+    char width[6];
+
+    int file = openFileReadOnly(path);
+
+    //reads signature
+    readFromFile(file, sign, 2);
+
+    //if file is BMP
+    if(strcmp(sign, "BM") == 0)
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            //reads unimportant data from header
+            readFromFile(file, buffer, 4);
+        }
+        
+        //reads image width
+        readFromFile(file, width, 4);
+
+        //reads image length
+        readFromFile(file, height, 4);
+
+        printf("I'm a BMP with of size: %s x %s\n", height, width);
+    }
+
+
     
+    closeFile(file);
+
     //prints file name
     sprintf(buffer, "numele fisierului: %s\n", path);
     writeInFile(fout, buffer, strlen(buffer));
 
-    //prints height
+    //if file is BMP
+    if(strcmp(sign, "BM") == 0)
+    {
 
-    //prints length
+        printf("I'm a BMP with of size: %s x %s\n", height, width);
+        //prints file name
+        sprintf(buffer, "inaltime: %s\n", height);
+        writeInFile(fout, buffer, strlen(buffer));
+
+        //prints file name
+        sprintf(buffer, "lungime: %s\n", width);
+        writeInFile(fout, buffer, strlen(buffer));
+    }
 
     //prints file size
     sprintf(buffer, "dimensiune fisier: %ld\n", inf->st_size);

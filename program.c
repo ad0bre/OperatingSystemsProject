@@ -92,10 +92,33 @@ void getStat(char* path, struct stat* infop)
     }
 }
 
-void processFile(int fd, mode_t type)
+int getEntryType(mode_t mod)
 {
+    if(S_ISDIR(mod))
+    {
+        return 0;
+    }
 
+    if(S_ISLNK(mod))
+    {
+        return 1;
+    }
+
+    if(S_ISREG(mod))
+    {
+        return 2;
+    }
+
+    return -1;
 }
+
+// void processFile(char* path, mode_t type)
+// {
+//     int file = openFileReadOnly(path);
+
+//     closeFile(file);
+
+// }
 
 int main(int argc, char** argv)
 {
@@ -122,8 +145,9 @@ int main(int argc, char** argv)
         struct stat info;
         getStat(relpath, &info);
 
-        //opens current entry in read only mode
-        int file = openFileReadOnly(relpath);
+        //gets the type of the current entry: 0 - dir, 1 - symlink, 2 - regular file, -1 - unknown
+        int type = getEntryType(info.st_mode);
+        
 
     }
 

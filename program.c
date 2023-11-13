@@ -18,12 +18,26 @@ DIR* openDir(char* path)
     if (dIn == NULL)
     {
         char* errstr = "\0"; 
-        sprintf(errstr, "Could not open directory named %s\n", path); 
+        sprintf(errstr, "Could not open directory %s\n", path); 
         perror(errstr); //prints an error message stating what file cannot be opened
         exit(errno); //stops the program
     }
 
     return dIn;
+}
+
+int openFileReadOnly(char* path)
+{
+    int fd = 0;
+    if((fd = open(path, O_RDONLY)) < 0)
+    {
+        char* errstr = "\0"; 
+        sprintf(errstr, "Could not open file %s\n", path); 
+        perror(errstr); //prints an error message stating what file cannot be opened
+        exit(errno); //stops the program
+    }
+
+    return fd;
 }
 
 int createFile(char* path)
@@ -59,7 +73,12 @@ void closeFile(int fd)
 
 char* generateRelativePath(char* parentPath, char* fileName)
 {
-    char path[PATH_SIZE] = "\0"; 
+    char* path = malloc(sizeof(char) * PATH_SIZE);
+    if(path == NULL)
+    {
+        perror("Error at allocating memory\n");
+        exit(errno);
+    }
     sprintf(path, "%s/%s", parentPath, fileName);
     return path;
 }
@@ -96,11 +115,15 @@ int main(int argc, char** argv)
     struct dirent* entry;
     while((entry = readdir(dirIn)) != NULL)
     {
-        //generates relative path
+        //generates relative path of current entry
         char* relpath = generateRelativePath(argv[1], entry->d_name); 
 
+        //gets info on current entry
         struct stat info;
         getStat(relpath, &info);
+
+        //opens current entry in read only mode
+        int file = openFileReadOnly(relpath);
 
     }
 

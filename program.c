@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 #define FILE_OUT "statistica.txt"
 #define BUFF_SIZE 4
@@ -112,13 +113,155 @@ int getEntryType(mode_t mod)
     return -1;
 }
 
-// void processFile(char* path, mode_t type)
-// {
-//     int file = openFileReadOnly(path);
+char* getUserRights(mode_t mod)
+{
+    char* rights = malloc(sizeof(char) * 4);
+    if(rights == NULL)
+    {
+        perror("Error at allocating memory\n");
+        exit(errno);
+    }
 
-//     closeFile(file);
+    sprintf(rights, "---"); //no permissions
 
-// }
+    if(mod & S_IRUSR)
+    {
+        rights[0] = 'R';
+    }
+
+    if(mod & S_IWUSR)
+    {
+        rights[1] = 'W';
+    }
+
+    if(mod & S_IXUSR)
+    {
+        rights[2] = 'X';
+    }
+
+    return rights;
+}
+
+char* getGroupRights(mode_t mod)
+{
+    char* rights = malloc(sizeof(char) * 4);
+    if(rights == NULL)
+    {
+        perror("Error at allocating memory\n");
+        exit(errno);
+    }
+
+    sprintf(rights, "---"); //no permissions
+
+    if(mod & S_IRGRP)
+    {
+        rights[0] = 'R';
+    }
+
+    if(mod & S_IWGRP)
+    {
+        rights[1] = 'W';
+    }
+
+    if(mod & S_IXGRP)
+    {
+        rights[2] = 'X';
+    }
+
+    return rights;
+}
+
+char* getOtherRights(mode_t mod)
+{
+    char* rights = malloc(sizeof(char) * 4);
+    if(rights == NULL)
+    {
+        perror("Error at allocating memory\n");
+        exit(errno);
+    }
+
+    sprintf(rights, "---"); //no permissions
+
+    if(mod & S_IROTH)
+    {
+        rights[0] = 'R';
+    }
+
+    if(mod & S_IWOTH)
+    {
+        rights[1] = 'W';
+    }
+
+    if(mod & S_IXOTH)
+    {
+        rights[2] = 'X';
+    }
+
+    return rights;
+}
+
+char* getLastModification(time_t time)
+{
+    struct tm* timeptr = gmtime(&time);
+    return asctime(timeptr);
+}
+
+void processDir(char* path, struct stat* inf, int fout)
+{
+    printf("nume director: %s\n", path);
+    printf("user id: %u\n", inf->st_uid);
+    printf("dimensiune (bytes): %ld\n", inf->st_size);
+    printf("drepturi user: %s\n", getUserRights(inf->st_mode));
+    printf("drepturi grup: %s\n", getGroupRights(inf->st_mode));
+    printf("drepturi altii: %s\n", getOtherRights(inf->st_mode));
+    printf("\n");
+    
+}
+
+void processLink(char* path, struct stat* inf, int fout)
+{
+    printf("nume legatura: %s\n", path);
+    printf("dimensiune (bytes): %ld\n", inf->st_size);
+    printf("dimensiune fis target: \n");
+    printf("drepturi user: %s\n", getUserRights(inf->st_mode));
+    printf("drepturi grup: %s\n", getGroupRights(inf->st_mode));
+    printf("drepturi altii: %s\n", getOtherRights(inf->st_mode));
+    printf("\n");
+}
+
+void processFile(char* path, struct stat* inf, int fout)
+{
+    printf("nume fisier: %s\n", path);
+    printf("dimensiune (bytes): %ld\n", inf->st_size);
+    printf("user id: %u\n", inf->st_uid);
+    printf("ult modif: %s", getLastModification(inf->st_atime));
+    printf("contor legaturi: %lu\n", inf->st_nlink);
+    printf("drepturi user: %s\n", getUserRights(inf->st_mode));
+    printf("drepturi grup: %s\n", getGroupRights(inf->st_mode));
+    printf("drepturi altii: %s\n", getOtherRights(inf->st_mode));
+    printf("\n");
+}
+
+void processEntry(char* path, int type, struct stat* inf, int fout)
+{
+
+    switch (type)
+    {
+    case 0: //directory
+        processDir(path, inf, fout);
+        break;
+    case 1: //symlink
+        processLink(path, inf, fout);
+        break;
+    case 2: //regular file
+        processFile(path, inf, fout);
+        break;
+    default:
+        printf("File %s is of unknown type\n", path);
+        break;
+    }
+
+}
 
 int main(int argc, char** argv)
 {
@@ -148,6 +291,8 @@ int main(int argc, char** argv)
         //gets the type of the current entry: 0 - dir, 1 - symlink, 2 - regular file, -1 - unknown
         int type = getEntryType(info.st_mode);
         
+        //processes entry and writes in output file according to entry type
+        processEntry(relpath, type, &info, fileout);
 
     }
 

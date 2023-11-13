@@ -7,10 +7,11 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <string.h>
 
 #define FILE_OUT "statistica.txt"
 #define BUFF_SIZE 4
-
+#define PATH_SIZE 256
 DIR* openDir(char* path)
 {
     DIR* dIn = opendir(path);
@@ -56,6 +57,27 @@ void closeFile(int fd)
     }
 }
 
+char* generateRelativePath(char* parentPath, char* fileName)
+{
+    char path[PATH_SIZE] = "\0"; 
+    sprintf(path, "%s/%s", parentPath, fileName);
+    return path;
+}
+
+void getStat(char* path, struct stat* infop)
+{
+    if(stat(path, infop) != 0)
+    {
+        perror("Something went wrong getting the stats for a file...\n");
+        exit(errno);
+    }
+}
+
+void processFile(int fd, mode_t type)
+{
+
+}
+
 int main(int argc, char** argv)
 {
     if(argc != 2 ) // only one parameter allowed
@@ -64,16 +86,28 @@ int main(int argc, char** argv)
         exit(errno);
     }
 
+    //open directory from path received in command line arguments aray
     DIR* dirIn = openDir(argv[1]);
 
+    //creates output file with the name 'statistics.txt'
     int fileout = createFile(FILE_OUT);
 
-    struct dirent* dir_s;
+    //reads directory entries until the end
+    struct dirent* entry;
+    while((entry = readdir(dirIn)) != NULL)
+    {
+        //generates relative path
+        char* relpath = generateRelativePath(argv[1], entry->d_name); 
 
-    dir_s = readdir(dirIn);
+        struct stat info;
+        getStat(relpath, &info);
 
+    }
+
+    //closes input directory
     closeDir(dirIn);
 
+    //closes output file
     closeFile(fileout);
 
     return 0;

@@ -11,7 +11,7 @@
 #include <time.h>
 
 #define FILE_OUT "statistica.txt"
-#define BUFF_SIZE 4
+#define BUFF_SIZE 256
 #define PATH_SIZE 256
 DIR* openDir(char* path)
 {
@@ -68,6 +68,15 @@ void closeFile(int fd)
     if(close(fd) != 0)
     {
         perror("Could not close file\n");
+        exit(errno);
+    }
+}
+
+void writeInFile(int file, void* buffer, size_t nbytes)
+{
+    if(write(file, buffer, nbytes) <= 0)
+    {
+        perror("Eroare la scrierea in fisier\n");
         exit(errno);
     }
 }
@@ -208,38 +217,100 @@ char* getLastModification(time_t time)
 
 void processDir(char* path, struct stat* inf, int fout)
 {
-    printf("nume director: %s\n", path);
-    printf("user id: %u\n", inf->st_uid);
-    printf("dimensiune (bytes): %ld\n", inf->st_size);
-    printf("drepturi user: %s\n", getUserRights(inf->st_mode));
-    printf("drepturi grup: %s\n", getGroupRights(inf->st_mode));
-    printf("drepturi altii: %s\n", getOtherRights(inf->st_mode));
-    printf("\n");
+    char buffer[BUFF_SIZE];
+    
+    //prints dir name
+    sprintf(buffer, "nume director: %s\n", path);
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints user id
+    sprintf(buffer, "identificatorul utilizatorului: %u\n", inf->st_uid);
+    writeInFile(fout, buffer, strlen(buffer));
+    
+    //prints user permissions
+    sprintf(buffer, "drepturi de acces user: %s\n", getUserRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints group permissions
+    sprintf(buffer, "drepturi de acces grup: %s\n", getGroupRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints others permissions
+    sprintf(buffer, "drepturi de acces altii: %s\n", getOtherRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    writeInFile(fout, "\n", 1);
     
 }
 
 void processLink(char* path, struct stat* inf, int fout)
 {
-    printf("nume legatura: %s\n", path);
-    printf("dimensiune (bytes): %ld\n", inf->st_size);
-    printf("dimensiune fis target: \n");
-    printf("drepturi user: %s\n", getUserRights(inf->st_mode));
-    printf("drepturi grup: %s\n", getGroupRights(inf->st_mode));
-    printf("drepturi altii: %s\n", getOtherRights(inf->st_mode));
-    printf("\n");
+    char buffer[BUFF_SIZE];
+    
+    //prints link name
+    sprintf(buffer, "nume legatura: %s\n", path);
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints link size
+    sprintf(buffer, "dimensiune legatura: %ld\n", inf->st_size);
+    writeInFile(fout, buffer, strlen(buffer));
+    
+    //prints user permissions
+    sprintf(buffer, "drepturi de acces user: %s\n", getUserRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints group permissions
+    sprintf(buffer, "drepturi de acces grup: %s\n", getGroupRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints others permissions
+    sprintf(buffer, "drepturi de acces altii: %s\n", getOtherRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    writeInFile(fout, "\n", 1);
 }
 
 void processFile(char* path, struct stat* inf, int fout)
 {
-    printf("nume fisier: %s\n", path);
-    printf("dimensiune (bytes): %ld\n", inf->st_size);
-    printf("user id: %u\n", inf->st_uid);
-    printf("ult modif: %s", getLastModification(inf->st_atime));
-    printf("contor legaturi: %lu\n", inf->st_nlink);
-    printf("drepturi user: %s\n", getUserRights(inf->st_mode));
-    printf("drepturi grup: %s\n", getGroupRights(inf->st_mode));
-    printf("drepturi altii: %s\n", getOtherRights(inf->st_mode));
-    printf("\n");
+    char buffer[BUFF_SIZE];
+    
+    //prints file name
+    sprintf(buffer, "numele fisierului: %s\n", path);
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints height
+
+    //prints length
+
+    //prints file size
+    sprintf(buffer, "dimensiune fisier: %ld\n", inf->st_size);
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints user id
+    sprintf(buffer, "identificatorul utilizatorului: %u\n", inf->st_uid);
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints last modification
+    sprintf(buffer, "timpuul ultimei modificari: %s", getLastModification(inf->st_atime));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints number of links
+    sprintf(buffer, "contorul de legaturi: %lu\n", inf->st_nlink);
+    writeInFile(fout, buffer, strlen(buffer));
+    
+    //prints user permissions
+    sprintf(buffer, "drepturi de acces user: %s\n", getUserRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints group permissions
+    sprintf(buffer, "drepturi de acces grup: %s\n", getGroupRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints others permissions
+    sprintf(buffer, "drepturi de acces altii: %s\n", getOtherRights(inf->st_mode));
+    writeInFile(fout, buffer, strlen(buffer));
+
+    writeInFile(fout, "\n", 1);
 }
 
 void processEntry(char* path, int type, struct stat* inf, int fout)

@@ -37,6 +37,15 @@ int createFile(char* path)
     return out;
 }
 
+void closeDir(DIR* dir)
+{
+    if(closedir(dir) != 0)
+    {
+        perror("Could not close directory\n");
+        exit(errno);
+    }
+}
+
 int main(int argc, char** argv)
 {
     if(argc != 2 ) // only one parameter allowed
@@ -48,6 +57,12 @@ int main(int argc, char** argv)
     DIR* dirIn = openDir(argv[1]);
 
     int fileout = createFile(FILE_OUT);
+
+    struct dirent* dir_s;
+
+    dir_s = readdir(dirIn);
+
+    closeDir(dirIn);
 
     return 0;
 }

@@ -282,15 +282,26 @@ void readFromFile(int file, void* buffer, size_t nbytes)
     }
 }
 
+uint32_t bytesToNumber(const uint8_t bytes[4]) {
+    
+    // Assuming little-endian byte order
+    return (uint32_t)(
+        (bytes[0] << 0) |
+        (bytes[1] << 8) |
+        (bytes[2] << 16) |
+        (bytes[3] << 24)
+    );
+}
+
 void processFile(char* path, struct stat* inf, int fout)
 {
-    char sign[3];
+    char sign[] = "AA\0";
 
-    char buffer[BUFF_SIZE];
+    uint8_t metabuffer[4]; 
 
-    char height[6];
+    uint8_t heightB[4];
 
-    char width[6];
+    uint8_t widthB[4];
 
     int file = openFileReadOnly(path);
 
@@ -298,26 +309,24 @@ void processFile(char* path, struct stat* inf, int fout)
     readFromFile(file, sign, 2);
 
     //if file is BMP
-    if(strcmp(sign, "BM") == 0)
+    if((strcmp(sign, "BM")) == 0)
     {
         for(int i = 0; i < 4; i++)
         {
             //reads unimportant data from header
-            readFromFile(file, buffer, 4);
+            readFromFile(file, metabuffer, 4);
         }
         
         //reads image width
-        readFromFile(file, width, 4);
+        readFromFile(file, widthB, 4);
 
         //reads image length
-        readFromFile(file, height, 4);
-
-        printf("I'm a BMP with of size: %s x %s\n", height, width);
+        readFromFile(file, heightB, 4);
     }
 
-
-    
     closeFile(file);
+
+    char buffer[BUFF_SIZE];
 
     //prints file name
     sprintf(buffer, "numele fisierului: %s\n", path);
@@ -326,14 +335,16 @@ void processFile(char* path, struct stat* inf, int fout)
     //if file is BMP
     if(strcmp(sign, "BM") == 0)
     {
-
-        printf("I'm a BMP with of size: %s x %s\n", height, width);
+        //transforms bytes arrays into numbers
+        u_int32_t width = bytesToNumber(widthB);
+        uint32_t height = bytesToNumber(heightB);
+        
         //prints file name
-        sprintf(buffer, "inaltime: %s\n", height);
+        sprintf(buffer, "inaltime: %u\n", height);
         writeInFile(fout, buffer, strlen(buffer));
 
         //prints file name
-        sprintf(buffer, "lungime: %s\n", width);
+        sprintf(buffer, "lungime: %u\n", width);
         writeInFile(fout, buffer, strlen(buffer));
     }
 

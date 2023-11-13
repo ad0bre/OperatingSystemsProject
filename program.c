@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #define FILE_OUT "statistica.txt"
 #define BUFF_SIZE 4
@@ -39,9 +40,18 @@ int createFile(char* path)
 
 void closeDir(DIR* dir)
 {
-    if(closedir(dir) != 0)
+    if(closedir(dir) != 0) //closes directory
     {
         perror("Could not close directory\n");
+        exit(errno); //stops program if directory cannot be closed
+    }
+}
+
+void closeFile(int fd)
+{
+    if(close(fd) != 0)
+    {
+        perror("Could not close file\n");
         exit(errno);
     }
 }
@@ -63,6 +73,8 @@ int main(int argc, char** argv)
     dir_s = readdir(dirIn);
 
     closeDir(dirIn);
+
+    closeFile(fileout);
 
     return 0;
 }

@@ -13,7 +13,6 @@
 #define FILE_OUT "statistica.txt"
 #define BUFF_SIZE 256
 #define PATH_SIZE 256
-#define FIXED_CONST 20 //don't ask why, it's the only way it works
 
 DIR* openDir(char* path)
 {
@@ -97,7 +96,7 @@ char* generateRelativePath(char* parentPath, char* fileName)
 
 void getStat(char* path, struct stat* infop)
 {
-    if(stat(path, infop) != 0)
+    if(lstat(path, infop) != 0)
     {
         perror("Something went wrong getting the stats for a file...\n");
         exit(errno);
@@ -248,6 +247,14 @@ void processDir(char* path, struct stat* inf, int fout)
 void processLink(char* path, struct stat* inf, int fout)
 {
     char buffer[BUFF_SIZE];
+
+    struct stat target;
+
+    if(stat(path, &target) != 0)
+    {
+        perror("Something went wrong getting the stats for a file...\n");
+        exit(errno);
+    }
     
     //prints link name
     sprintf(buffer, "nume legatura: %s\n", path);
@@ -255,6 +262,10 @@ void processLink(char* path, struct stat* inf, int fout)
 
     //prints link size
     sprintf(buffer, "dimensiune legatura: %ld\n", inf->st_size);
+    writeInFile(fout, buffer, strlen(buffer));
+
+    //prints target size
+    sprintf(buffer, "dimensiune fisier target: %ld\n", target.st_size);
     writeInFile(fout, buffer, strlen(buffer));
     
     //prints user permissions

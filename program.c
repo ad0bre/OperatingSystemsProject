@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <dirent.h>
@@ -420,7 +421,7 @@ char* generateOutputPath(char* dirpath, char* filename)
         exit(errno);
     }
     
-    sprintf(path, "%s/%s_statistica.txt", dirpath, path);
+    sprintf(path, "%s/%s_statistica.txt", dirpath, filename);
     return path;
 }
 
@@ -435,30 +436,79 @@ int main(int argc, char** argv)
     //open directory from path received in command line arguments aray
     DIR* dirIn = openDir(argv[1]); 
 
+    //initializes pid variable and status variable to be used when creating processes
+    int pid = -1, status = -1;
+
+    //counts number of processes spawned
+    int count = 0;
+
     //reads directory entries until the end
     struct dirent* entry;
     while((entry = readdir(dirIn)) != NULL)
     {
-        //generates relative path of current entry
-        char* relpath = generateRelativePath(argv[1], entry->d_name); 
+        //generates relative path of current entry to program.c
+        char* relpath = generateRelativePath(argv[1], entry->d_name);
 
-        //gets info on current entry
+        //generates path of the _statistics.txt file
+        char* outpath = generateOutputPath(argv[2], entry->d_name);
+
+        // //gets info on current entry
         struct stat info;
         getStat(relpath, &info);
 
         //gets the type of the current entry: 0 - dir, 1 - symlink, 2 - regular file, -1 - unknown
         int type = getEntryType(info.st_mode);
         
-        //processes entry and writes in output file according to entry type
-        processEntry(relpath, type, &info, fileout);
+        if((pid = fork()) < 0) //creates new child process for writing in file
+        {
+            perror("Error at forking\n");
+            exit(errno);
+        }
+
+        if(pid == 0) //is a child process
+        {
+            //increments number of processes
+            count++;
+
+            //creates statistics file in output directory
+            int fileout = createFile(outpath);
+
+            //processes entry and writes in output file according to entry type
+            processEntry(relpath, type, &info, fileout);
+
+            //close output file
+            closeFile(fileout);
+
+            exit(count);
+        }
+        
+        //adds a waiting time of 3 seconds between processes
+        sleep(3);
+    }
+
+    //goes through all child processes and waits for them to be completed
+    for(int i = 0; i < count; i++)
+    {
+        //gets pid of the last child process completed
+        int p = wait(&status);
+
+        //checks for errors
+        if(p < 0)
+        {
+            perror("Error at finishing process\n");
+            exit(status);
+        }
+
+        //prints the status of each process
+        if(WIFEXITED(status))
+        {
+            printf("Process with PID %d finished with status %d\n", p, status);
+        }
 
     }
 
     //closes input directory
     closeDir(dirIn);
-
-    //closes output file
-    closeFile(fileout);
 
     return 0;
 }

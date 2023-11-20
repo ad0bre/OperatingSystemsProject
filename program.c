@@ -413,17 +413,14 @@ void processEntry(char* path, int type, struct stat* inf, int fout)
 
 int main(int argc, char** argv)
 {
-    if(argc != 2 ) // only one parameter allowed
+    if(argc != 3 ) // only one parameter allowed
     {
-        perror("Usage ./program <input_dir>");
+        perror("Usage ./program <input_dir> <output_dir>");
         exit(errno);
     }
 
     //open directory from path received in command line arguments aray
-    DIR* dirIn = openDir(argv[1]);
-
-    //creates output file with the name 'statistics.txt'
-    int fileout = createFile(FILE_OUT);
+    DIR* dirIn = openDir(argv[1]); 
 
     //reads directory entries until the end
     struct dirent* entry;

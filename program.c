@@ -481,6 +481,9 @@ int main(int argc, char** argv)
 
             exit(count);
         }
+
+        //frees memory allocated with functions
+        free(relpath); free(outpath);
         
         //adds a waiting time of 3 seconds between processes
         sleep(3);

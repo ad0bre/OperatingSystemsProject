@@ -411,6 +411,19 @@ void processEntry(char* path, int type, struct stat* inf, int fout)
 
 }
 
+char* generateOutputPath(char* dirpath, char* filename)
+{
+    char* path = malloc(sizeof(char) * PATH_SIZE);
+    if(path == NULL)
+    {
+        perror("Error at allocating memory\n");
+        exit(errno);
+    }
+    
+    sprintf(path, "%s/%s_statistica.txt", dirpath, path);
+    return path;
+}
+
 int main(int argc, char** argv)
 {
     if(argc != 3 ) // only one parameter allowed

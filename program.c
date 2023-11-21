@@ -49,7 +49,7 @@ int createFile(char* path)
 
     if(out == -1) //if output file cannot be created
     {
-        perror("Could not create \'statistica.txt\' output file\n"); //prints an error message
+        perror("Could not create output file\n"); //prints an error message
         exit(errno); //stops the program
     }
 
@@ -467,9 +467,6 @@ int main(int argc, char** argv)
 
         if(pid == 0) //is a child process
         {
-            //increments number of processes
-            count++;
-
             //creates statistics file in output directory
             int fileout = createFile(outpath);
 
@@ -479,14 +476,18 @@ int main(int argc, char** argv)
             //close output file
             closeFile(fileout);
 
+            //exits current process
             exit(count);
         }
 
+        //increments number of processes
+        count++;
+        
         //frees memory allocated with functions
         free(relpath); free(outpath);
         
-        //adds a waiting time of 3 seconds between processes
-        sleep(3);
+        //adds a waiting time of 1 second between processes
+        sleep(1);
     }
 
     //goes through all child processes and waits for them to be completed
@@ -507,7 +508,6 @@ int main(int argc, char** argv)
         {
             printf("Process with PID %d finished with status %d\n", p, status);
         }
-
     }
 
     //closes input directory

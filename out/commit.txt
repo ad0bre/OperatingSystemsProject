@@ -1,1 +1,0 @@
-Acest fisier exista doar pentru a putea incarca directorul out pe remote.

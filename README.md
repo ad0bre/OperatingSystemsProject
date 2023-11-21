@@ -15,7 +15,7 @@ The first command, `gcc -g program.c -o program` **compiles**[^1] the *program.c
 
 The second command, `./program dir out` runs the executable file *program*, taking the name of the attached directories *dir* and *out* as **parameters**[^2].
 
-This C program takes a directory as input and, for each of it's entries, creates a statistics file in the *out* directory where informations about the corresponfing entry is written. The names of these statistics file are [name of dir entry]_statistics.txt.
+This C program takes a directory as input and, for each of it's entries, creates a statistics file in the *out* directory where informations about the corresponfing entry is written. The names of these statistics file are **[name of dir entry]_statistica.txt**.
 
 [^1]: uses GCC compiler, check if available
 [^2]: this project uses a mock directory to demonstrate how the code functions, you are free to use any other directory you want

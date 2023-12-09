@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 #define FILE_OUT "statistica.txt"
 #define BUFF_SIZE 256
@@ -29,10 +30,10 @@ DIR* openDir(char* path)
     return dIn;
 }
 
-int openFileReadOnly(char* path)
+int openFileReadWrite(char* path)
 {
     int fd = 0;
-    if((fd = open(path, O_RDONLY)) < 0)
+    if((fd = open(path, O_RDWR)) < 0)
     {
         char* errstr = "\0"; 
         sprintf(errstr, "Could not open file %s\n", path); 
@@ -305,6 +306,60 @@ uint32_t bytesToNumber(const uint8_t bytes[4]) {
     );
 }
 
+void bmpToGrayScale(int file, int width, int height)
+{
+   int p = -1, s = -1;
+   if((p = fork()) < 0)
+   {
+        perror("Error at forking\n");
+       exit(errno);
+   }
+   if(p == 0)
+   {
+        unsigned char* data = (unsigned char*)malloc(width * height * 3);
+        if(data == NULL)
+        {
+            perror("Error at allocating memory\n");
+            exit(errno);
+        }
+        int rd = read(file, data, width * height * 3);
+        if(rd < 0)
+        {
+            perror("Error at reading from BMP file\n");
+            exit(errno);
+        }
+        for(int i = 0; i < width * height; i++)
+        {
+            unsigned char r = data[i * 3 + 2];
+            unsigned char g = data[i * 3 + 1];
+            unsigned char b = data[i * 3];
+            unsigned char gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            data[i * 3] = gray;
+            data[i * 3 + 1] = gray;
+            data[i * 3 + 2] = gray;
+        }
+        lseek(file, 54, SEEK_SET);
+        int wr = write(file, data, width * height * 3);
+        if(wr < 0)
+        {
+            perror("Error at writing to BMP file\n");
+            exit(errno);
+        }
+        free(data);
+        exit(0);
+    }
+    else
+    {
+        wait(&s);
+        if(!WIFEXITED(s))
+        {
+            perror("Process finished anormally\n");
+            exit(s);
+        }
+        printf("Process with PID %d finished with status %d\n", p, WEXITSTATUS(s));
+   }
+}
+
 void processFile(char* path, struct stat* inf, int fout)
 {
     char sign[] = "AA\0";
@@ -315,7 +370,7 @@ void processFile(char* path, struct stat* inf, int fout)
 
     uint8_t widthB[4];
 
-    int file = openFileReadOnly(path);
+    int file = openFileReadWrite(path);
 
     //reads signature
     readFromFile(file, sign, 2);
@@ -336,8 +391,6 @@ void processFile(char* path, struct stat* inf, int fout)
         readFromFile(file, heightB, 4);
     }
 
-    closeFile(file);
-
     char buffer[BUFF_SIZE];
 
     //prints file name
@@ -350,6 +403,9 @@ void processFile(char* path, struct stat* inf, int fout)
         //transforms bytes arrays into numbers
         u_int32_t width = bytesToNumber(widthB);
         uint32_t height = bytesToNumber(heightB);
+
+        //turns BMP into grayscale
+        bmpToGrayScale(file, width, height);
         
         //prints file name
         sprintf(buffer, "inaltime: %u\n", height);
@@ -389,6 +445,8 @@ void processFile(char* path, struct stat* inf, int fout)
     writeInFile(fout, buffer, strlen(buffer));
 
     writeInFile(fout, "\n", 1);
+
+    closeFile(file);
 }
 
 void processEntry(char* path, int type, struct stat* inf, int fout)
@@ -427,9 +485,15 @@ char* generateOutputPath(char* dirpath, char* filename)
 
 int main(int argc, char** argv)
 {
-    if(argc != 3 ) // only one parameter allowed
+    if(argc != 4 ) 
     {
-        perror("Usage ./program <input_dir> <output_dir>");
+        perror("Usage ./program <input_dir> <output_dir> <character>");
+        exit(errno);
+    }
+
+    if(isalnum(argv[3][0]) == 0)
+    {
+        perror("Third argument must be an alphanumeric character\n");
         exit(errno);
     }
 
@@ -441,6 +505,9 @@ int main(int argc, char** argv)
 
     //counts number of processes spawned
     int count = 0;
+
+    //count number of lines returned by the shell script in each child process
+    int lines = 0;
 
     //reads directory entries until the end
     struct dirent* entry;
@@ -504,11 +571,17 @@ int main(int argc, char** argv)
         }
 
         //prints the status of each process
-        if(WIFEXITED(status))
+        if(!WIFEXITED(status))
         {
-            printf("Process with PID %d finished with status %d\n", p, status);
+            perror("Process finished anormally\n");
+            exit(status);
         }
+
+        //prints process and status
+        printf("Process with PID %d finished with status %d\n", p, WEXITSTATUS(status));
     }
+
+    printf("Au fost identificate in total %d propozitii corecte care contin caracterul %c\n", lines, argv[3][0]);
 
     //closes input directory
     closeDir(dirIn);

@@ -16,6 +16,12 @@
 #define BUFF_SIZE 256
 #define PATH_SIZE 256
 
+//file descritptors for pipes
+int ChildIn[2], OutParent[2];
+
+//character to be searched for
+char character;
+
 DIR* openDir(char* path)
 {
     DIR* dIn = opendir(path);
@@ -338,7 +344,11 @@ void bmpToGrayScale(int file, int width, int height)
             data[i * 3 + 1] = gray;
             data[i * 3 + 2] = gray;
         }
-        lseek(file, 54, SEEK_SET);
+        if(lseek(file, 54, SEEK_SET) < 0)
+        {
+            perror("Error at lseek\n");
+            exit(errno);
+        }
         int wr = write(file, data, width * height * 3);
         if(wr < 0)
         {
@@ -360,7 +370,7 @@ void bmpToGrayScale(int file, int width, int height)
    }
 }
 
-void processFile(char* path, struct stat* inf, int fout)
+void processFile(char* path, struct stat* inf, int fout, int* childIn, int* outParent, int* lines)
 {
     char sign[] = "AA\0";
 
@@ -446,10 +456,86 @@ void processFile(char* path, struct stat* inf, int fout)
 
     writeInFile(fout, "\n", 1);
 
+    //Urmatoarele linii de cod au fost comentate pentru ca se blocheaza la citirea din pipe, dar le puteti decomenta pentru a vedea ca scriptul functioneaza
+
+    //creates a new process for counting the number of lines in the file
+    // if(strcmp(sign, "BM") != 0)
+    // {
+    //     if(pipe(childIn) < 0)
+    //     {
+    //         perror("Error at creating pipe\n");
+    //         exit(errno);
+    //     }
+
+    //     int p = -1, s = -1;
+    //     if((p = fork()) < 0)
+    //     {
+    //         perror("Error at forking\n");
+    //         exit(errno);
+    //     }
+    //     if(p == 0)
+    //     {
+    //         //closes write end of the pipe
+    //         close(childIn[1]);
+
+    //         //redirects standard input to read from the pipe
+    //         dup2(childIn[0], STDIN_FILENO);
+    //         close(childIn[0]);
+
+    //         //executes script.sh
+    //         execlp("./script.sh", "./script.sh", &character, (char *)NULL);
+
+    //         //checks for errors
+    //         perror("Error executing script.sh\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     else
+    //     {
+    //         //reads contents of file
+    //         char buffer[inf->st_size + 1];
+    //         int bytesRead = 0;
+    //         if((bytesRead = read(file, buffer, inf->st_size)) < 0)
+    //         {
+    //             perror("Error at reading from file\n");
+    //             exit(errno);
+    //         }
+
+    //         //writes contents of file in pipe
+    //         if(write(childIn[1], buffer, bytesRead) < 0)
+    //         {
+    //             perror("Error at writing to pipe\n");
+    //             exit(errno);
+    //         }
+            
+    //         //wair for child process to finish
+    //         wait(&s);
+    //         if(!WIFEXITED(s))
+    //         {
+    //             perror("Process finished anormally\n");
+    //             exit(s);
+    //         }
+    //         printf("Process with PID %d finished with status %d\n", p, WEXITSTATUS(s));
+
+    //         //reads number of lines returned by script.sh
+    //         char outputBuffer[10];
+    //         int bytesReadFromPipe = read(childIn[0], outputBuffer, sizeof(outputBuffer));
+    //         if(bytesReadFromPipe < 0)
+    //         {
+    //             perror("Error at reading from pipe\n");
+    //             exit(errno);
+    //         }
+
+    //         //closes read end of the pipe
+    //         close(childIn[0]);
+
+    //         *lines = atoi(outputBuffer);
+    //     }
+    // }
+
     closeFile(file);
 }
 
-void processEntry(char* path, int type, struct stat* inf, int fout)
+void processEntry(char* path, int type, struct stat* inf, int fout, int* childIn, int* outParent, int* lines)
 {
 
     switch (type)
@@ -461,7 +547,7 @@ void processEntry(char* path, int type, struct stat* inf, int fout)
         processLink(path, inf, fout);
         break;
     case 2: //regular file
-        processFile(path, inf, fout);
+        processFile(path, inf, fout, childIn, outParent, lines);
         break;
     default:
         printf("File %s is of unknown type\n", path);
@@ -483,6 +569,7 @@ char* generateOutputPath(char* dirpath, char* filename)
     return path;
 }
 
+
 int main(int argc, char** argv)
 {
     if(argc != 4 ) 
@@ -496,6 +583,8 @@ int main(int argc, char** argv)
         perror("Third argument must be an alphanumeric character\n");
         exit(errno);
     }
+
+    character = argv[3][0];
 
     //open directory from path received in command line arguments aray
     DIR* dirIn = openDir(argv[1]); 
@@ -537,8 +626,11 @@ int main(int argc, char** argv)
             //creates statistics file in output directory
             int fileout = createFile(outpath);
 
+            //number of correct lines for current entry, zero if not a regular file or has no correct lines
+            int lines = 0;
+
             //processes entry and writes in output file according to entry type
-            processEntry(relpath, type, &info, fileout);
+            processEntry(relpath, type, &info, fileout, ChildIn, OutParent, &lines);
 
             //close output file
             closeFile(fileout);
@@ -581,7 +673,7 @@ int main(int argc, char** argv)
         printf("Process with PID %d finished with status %d\n", p, WEXITSTATUS(status));
     }
 
-    printf("Au fost identificate in total %d propozitii corecte care contin caracterul %c\n", lines, argv[3][0]);
+    printf("Au fost identificate in total %d propozitii corecte care contin caracterul %c\n", lines, character);
 
     //closes input directory
     closeDir(dirIn);
